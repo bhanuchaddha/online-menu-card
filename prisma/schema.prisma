@@ -9,8 +9,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // NextAuth.js Models
@@ -51,9 +52,8 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts    Account[]
-  sessions    Session[]
-  restaurants Restaurant[]
+  accounts Account[]
+  sessions Session[]
 }
 
 model VerificationToken {
@@ -64,93 +64,37 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// Application Models
+// Application Models - Simplified to match Supabase structure
 model Restaurant {
-  id          String   @id @default(cuid())
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id")
   name        String
   slug        String   @unique
   description String?
-  logo        String?
   address     String?
   phone       String?
-  email       String?
   website     String?
-  hours       Json?
-  socialMedia Json?
-  theme       String   @default("modern")
-  isActive    Boolean  @default(true)
-  isPublic    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  ownerId String
-
-  menus Menu[]
-
+  @@map("restaurants")
+  @@index([userId])
   @@index([slug])
-  @@index([ownerId])
 }
 
+// Simple menu model that stores AI-extracted data as JSON
 model Menu {
-  id           String   @id @default(cuid())
-  name         String
-  description  String?
-  isActive     Boolean  @default(true)
-  displayOrder Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id")
+  restaurantName String   @map("restaurant_name")
+  imageUrl       String   @map("image_url")
+  extractedData  Json     @map("extracted_data") @db.JsonB
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  restaurantId String
-
-  categories MenuCategory[]
-
-  @@index([restaurantId])
-}
-
-model MenuCategory {
-  id           String   @id @default(cuid())
-  name         String
-  description  String?
-  image        String?
-  displayOrder Int      @default(0)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  menu   Menu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
-  menuId String
-
-  items MenuItem[]
-
-  @@index([menuId])
-}
-
-model MenuItem {
-  id           String      @id @default(cuid())
-  name         String
-  description  String?
-  price        Decimal     @db.Decimal(10, 2)
-  image        String?
-  isVegetarian Boolean     @default(false)
-  isVegan      Boolean     @default(false)
-  isGlutenFree Boolean     @default(false)
-  isSpicy      Boolean     @default(false)
-  allergens    String[]
-  calories     Int?
-  prepTime     Int?
-  isAvailable  Boolean     @default(true)
-  displayOrder Int         @default(0)
-  tags         String[]
-  status       ItemStatus  @default(AVAILABLE)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
-  category   MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  categoryId String
-
-  @@index([categoryId])
+  @@map("menus")
+  @@index([userId])
+  @@index([createdAt])
 }
 
 // Enums
@@ -158,11 +102,4 @@ enum UserRole {
   RESTAURANT_OWNER
   CUSTOMER
   ADMIN
-}
-
-enum ItemStatus {
-  AVAILABLE
-  OUT_OF_STOCK
-  SEASONAL
-  DISCONTINUED
 }

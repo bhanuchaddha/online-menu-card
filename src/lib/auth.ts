@@ -1,5 +1,6 @@
 import { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
+import { UserRole } from '@prisma/client'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -16,14 +17,14 @@ export const authOptions: NextAuthOptions = {
       if (session?.user && token?.sub) {
         session.user.id = token.sub
         // Add user role to session (can be stored in JWT)
-        session.user.role = (token.role as string) || 'RESTAURANT_OWNER'
+        session.user.role = (token.role as UserRole) || UserRole.RESTAURANT_OWNER
       }
       return session
     },
     jwt: async ({ token, user }) => {
       // Store user info in JWT token
       if (user) {
-        token.role = 'RESTAURANT_OWNER' // Default role
+        token.role = UserRole.RESTAURANT_OWNER // Default role
       }
       return token
     },

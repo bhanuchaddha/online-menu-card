@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { OpenRouterService } from '@/lib/openrouter'
 import { cloudinaryService } from '@/lib/cloudinary'
+import { menuService } from '@/lib/menu-service'
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,11 +27,20 @@ export async function POST(request: NextRequest) {
     const openRouterService = new OpenRouterService()
     const extractionResult = await openRouterService.extractMenuFromImage(uploadResult.secure_url)
 
+    // Save to database using Supabase
+    const savedMenu = await menuService.saveMenu({
+      userId: session.user.id,
+      restaurantName: extractionResult.restaurant_name || 'Untitled Restaurant',
+      imageUrl: uploadResult.secure_url,
+      extractedData: extractionResult
+    })
+
     return NextResponse.json({
       success: true,
       data: {
         image: uploadResult,
-        extraction: extractionResult
+        extraction: extractionResult,
+        savedMenu: savedMenu
       }
     })
   } catch (error) {

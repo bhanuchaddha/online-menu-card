@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { MenuCamera } from '@/components/camera/menu-camera'
+import { MenuList } from '@/components/menu/menu-list'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Camera, Plus, Settings, LogOut, Store, Menu } from 'lucide-react'
 import { toast } from 'sonner'
@@ -15,6 +16,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const [showCamera, setShowCamera] = useState(false)
   const [isExtracting, setIsExtracting] = useState(false)
+  const [refreshMenus, setRefreshMenus] = useState(0)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -42,8 +44,9 @@ export default function DashboardPage() {
       const result = await response.json()
       console.log('Extraction result:', result)
       
-      toast.success('Menu extracted successfully! Review and edit your menu.')
-      // TODO: Navigate to menu editor with extracted data
+      toast.success('Menu extracted and saved successfully!')
+      // Refresh the menu list
+      setRefreshMenus(prev => prev + 1)
       
     } catch (error) {
       console.error('Menu extraction error:', error)
@@ -159,21 +162,8 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>
-              Your latest menu updates and changes
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-gray-500">
-              <Store className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No activity yet. Create your first menu to get started!</p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Menu Management */}
+        <MenuList key={refreshMenus} />
       </div>
 
       {/* Loading overlay for menu extraction */}
