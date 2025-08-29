@@ -1,0 +1,168 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// NextAuth.js Models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          UserRole  @default(RESTAURANT_OWNER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts    Account[]
+  sessions    Session[]
+  restaurants Restaurant[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Application Models
+model Restaurant {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  logo        String?
+  address     String?
+  phone       String?
+  email       String?
+  website     String?
+  hours       Json?
+  socialMedia Json?
+  theme       String   @default("modern")
+  isActive    Boolean  @default(true)
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  menus Menu[]
+
+  @@index([slug])
+  @@index([ownerId])
+}
+
+model Menu {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  isActive     Boolean  @default(true)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurantId String
+
+  categories MenuCategory[]
+
+  @@index([restaurantId])
+}
+
+model MenuCategory {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  image        String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  menu   Menu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  menuId String
+
+  items MenuItem[]
+
+  @@index([menuId])
+}
+
+model MenuItem {
+  id           String      @id @default(cuid())
+  name         String
+  description  String?
+  price        Decimal     @db.Decimal(10, 2)
+  image        String?
+  isVegetarian Boolean     @default(false)
+  isVegan      Boolean     @default(false)
+  isGlutenFree Boolean     @default(false)
+  isSpicy      Boolean     @default(false)
+  allergens    String[]
+  calories     Int?
+  prepTime     Int?
+  isAvailable  Boolean     @default(true)
+  displayOrder Int         @default(0)
+  tags         String[]
+  status       ItemStatus  @default(AVAILABLE)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  category   MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String
+
+  @@index([categoryId])
+}
+
+// Enums
+enum UserRole {
+  RESTAURANT_OWNER
+  CUSTOMER
+  ADMIN
+}
+
+enum ItemStatus {
+  AVAILABLE
+  OUT_OF_STOCK
+  SEASONAL
+  DISCONTINUED
+}
