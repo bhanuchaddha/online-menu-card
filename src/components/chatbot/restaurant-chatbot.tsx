@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { MessageCircle, Send, Bot, User, Loader2, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import ReactMarkdown from 'react-markdown'
+import rehypeRaw from 'rehype-raw'
 
 interface Message {
   id: string
@@ -193,7 +195,11 @@ export function RestaurantChatbot({ className }: ChatbotProps) {
                     ? 'bg-blue-500 text-white'
                     : 'bg-gray-100 text-gray-900'
                 )}>
-                  <div className="whitespace-pre-wrap">{message.content}</div>
+                  <div className="prose prose-sm max-w-none">
+                    <ReactMarkdown rehypePlugins={[rehypeRaw]}>
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
                   <div className={cn(
                     'text-xs mt-1 opacity-70',
                     message.role === 'user' ? 'text-blue-100' : 'text-gray-500'

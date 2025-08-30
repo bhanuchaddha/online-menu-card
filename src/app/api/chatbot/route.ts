@@ -1,107 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { OpenRouterService } from '@/lib/openrouter'
-import { menuService } from '@/lib/menu-service'
+import { menuService, RestaurantData, MenuData } from '@/lib/menu-service'
 
 const openRouterService = new OpenRouterService()
 
-// Text search function using Prisma with menu service
-async function searchRestaurantsWithTextSearch(query: string) {
+// New text search function that calls the menu service
+async function searchRestaurants(query: string) {
   try {
-    // Get all public restaurants and their menus
-    const restaurants = await menuService.getAllPublicRestaurants()
-    
-    if (!restaurants || restaurants.length === 0) {
-      return { searchResults: [], restaurants: [] }
-    }
+    const restaurants = await menuService.searchRestaurantsByText(query)
 
-    const searchResults: any[] = []
-    const matchedRestaurants: any[] = []
-
-    // Search through restaurants and their menus
+    // To provide more context to the LLM, we can fetch menu details for the found restaurants.
+    const searchResults = []
     for (const restaurant of restaurants) {
-      let hasMatch = false
-      const queryLower = query.toLowerCase()
-
-      // Check restaurant name, description, address
-      const restaurantText = `${restaurant.name || ''} ${restaurant.description || ''} ${restaurant.address || ''}`.toLowerCase()
-      
-      if (restaurantText.includes(queryLower)) {
-        hasMatch = true
-        matchedRestaurants.push(restaurant)
-        searchResults.push({
-          type: 'restaurant',
-          restaurant_id: restaurant.id,
-          content: `${restaurant.name} - ${restaurant.description || ''} - ${restaurant.address || ''}`,
-          metadata: {
-            name: restaurant.name,
-            description: restaurant.description,
-            address: restaurant.address,
-            phone: restaurant.phone,
-            website: restaurant.website,
-            slug: restaurant.slug
-          }
-        })
-      }
-
-      // Search through menu items if latest menu exists
-      if (restaurant.latestMenu?.extractedData?.categories) {
-        try {
-          const menuData = restaurant.latestMenu.extractedData as any
-          
-          for (const category of menuData.categories) {
-            // Check category name
-            if (category.name && category.name.toLowerCase().includes(queryLower)) {
-              hasMatch = true
-              searchResults.push({
-                type: 'category',
-                restaurant_id: restaurant.id,
-                content: `${category.name} category at ${restaurant.name}`,
-                metadata: {
-                  category_name: category.name,
-                  restaurant_name: restaurant.name,
-                  slug: restaurant.slug
-                }
-              })
-            }
-
-            // Check menu items
-            if (category.items) {
-              for (const item of category.items) {
-                const itemText = `${item.name || ''} ${item.description || ''} ${item.price || ''}`.toLowerCase()
-                if (itemText.includes(queryLower)) {
-                  hasMatch = true
-                  searchResults.push({
-                    type: 'menu_item',
-                    restaurant_id: restaurant.id,
-                    content: `${item.name || 'Unnamed item'} - ${item.description || 'No description'} - ${item.price || 'Price not specified'} at ${restaurant.name}`,
-                    metadata: {
-                      item_name: item.name,
-                      item_description: item.description,
-                      item_price: item.price,
-                      category_name: category.name,
-                      restaurant_name: restaurant.name,
-                      slug: restaurant.slug
-                    }
-                  })
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Error processing menu data for restaurant:', restaurant.name, error)
-        }
-      }
-
-      if (hasMatch && !matchedRestaurants.find(r => r.id === restaurant.id)) {
-        matchedRestaurants.push(restaurant)
-      }
+      const menus = await menuService.getPublicRestaurantWithMenus(restaurant.slug)
+      searchResults.push({
+        ...restaurant,
+        menus: menus.menus.map(m => m.extractedData) // Add menu data to the context
+      })
     }
-
-    return {
-      searchResults: searchResults.slice(0, 8), // Limit results
-      restaurants: matchedRestaurants
-    }
-
+    
+    return { searchResults, restaurants }
   } catch (error) {
     console.error('Text search error:', error)
     return { searchResults: [], restaurants: [] }
@@ -119,8 +37,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Use Supabase text search instead of embeddings
-    const { searchResults, restaurants } = await searchRestaurantsWithTextSearch(message)
+    // Use the new database text search
+    const { searchResults, restaurants } = await searchRestaurants(message)
     
     // Build context for the AI
     let context = "You are a helpful restaurant finder assistant. Based on the user's query, help them find restaurants and menu items that match their preferences.\n\n"
@@ -132,12 +50,12 @@ export async function POST(request: NextRequest) {
       const resultsByRestaurant = new Map()
       
       for (const result of searchResults) {
-        const restaurantName = result.metadata.restaurant_name || result.metadata.name
+        const restaurantName = result.name || result.restaurant_name
         if (!restaurantName) continue
         
         if (!resultsByRestaurant.has(restaurantName)) {
           resultsByRestaurant.set(restaurantName, {
-            restaurant: result.metadata,
+            restaurant: result,
             items: []
           })
         }
@@ -161,15 +79,15 @@ export async function POST(request: NextRequest) {
         const categories = items.filter(item => item.type === 'category')
         
         if (categories.length > 0) {
-          context += `Categories: ${categories.map(c => c.metadata.category_name).join(', ')}\n`
+          context += `Categories: ${categories.map(c => c.category_name).join(', ')}\n`
         }
         
         if (menuItems.length > 0) {
           context += "Menu Items:\n"
           for (const item of menuItems.slice(0, 3)) { // Limit to top 3 items per restaurant
-            context += `- ${item.metadata.item_name}`
-            if (item.metadata.item_price) context += ` (${item.metadata.item_price})`
-            if (item.metadata.item_description) context += `: ${item.metadata.item_description}`
+            context += `- ${item.item_name}`
+            if (item.item_price) context += ` (${item.item_price})`
+            if (item.item_description) context += `: ${item.item_description}`
             context += `\n`
           }
         }
@@ -187,6 +105,7 @@ export async function POST(request: NextRequest) {
     context += "3. Includes practical information like addresses, phone numbers, and menu links\n"
     context += "4. Is conversational and friendly\n"
     context += "5. If no good matches were found, suggest they try a different search or browse all restaurants\n"
+    context += "6. Formats the response using Markdown (e.g., use **bold** for names, lists for items, and links for menus)\n"
 
     // Build conversation messages
     const messages = [

@@ -487,6 +487,29 @@ export class MenuService {
     }
   }
 
+  // Text search function using Prisma raw queries for ILIKE
+  async searchRestaurantsByText(query: string): Promise<RestaurantData[]> {
+    try {
+      const searchTerm = `%${query}%`
+      const restaurants = await prisma.$queryRaw<RestaurantData[]>`
+        SELECT DISTINCT r.*
+        FROM restaurants r
+        LEFT JOIN menus m ON r.user_id = m.user_id AND r.name = m.restaurant_name
+        WHERE
+            r.name ILIKE ${searchTerm}
+            OR r.description ILIKE ${searchTerm}
+            OR r.address ILIKE ${searchTerm}
+            OR m.restaurant_name ILIKE ${searchTerm}
+            OR m.extracted_data::text ILIKE ${searchTerm}
+        LIMIT 10;
+      `
+      return restaurants
+    } catch (error) {
+      console.error('Error in text search for restaurants:', error)
+      return []
+    }
+  }
+
   // Get restaurants by location within radius (in kilometers)
   // Note: This method is disabled until latitude/longitude columns are added to the database
   async getRestaurantsByLocation(
