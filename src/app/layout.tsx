@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Playfair_Display, Lato } from 'next/font/google'
 import './globals.css'
 import '../styles/leaflet-custom.css'
 import { AuthProvider } from '@/components/providers/session-provider'
@@ -9,6 +9,18 @@ import { RestaurantChatbot } from '@/components/chatbot/restaurant-chatbot'
 import Script from 'next/script'
 
 const inter = Inter({ subsets: ['latin'] })
+
+const playfairDisplay = Playfair_Display({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-playfair-display',
+})
+
+const lato = Lato({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-lato',
+})
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -87,7 +99,7 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#2563eb" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.className} ${playfairDisplay.variable} ${lato.variable}`}>
         <AuthProvider>
           {children}
           <PWAInstallPrompt />

@@ -113,10 +113,25 @@
 }
 
 @layer base {
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+  }
+
+  .font-serif {
+    font-family: var(--font-playfair-display), serif;
+  }
+
+  .font-sans {
+    font-family: var(--font-lato), sans-serif;
+  }
+}
+
+@layer base {
   * {
     @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
   }
 }
