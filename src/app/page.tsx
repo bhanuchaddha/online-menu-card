@@ -1,41 +1,56 @@
 'use client'
-
+import { useEffect, useState } from 'react'
 import { useSession, signIn } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Camera, Smartphone, Zap, Globe, ArrowRight, Menu } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Camera, Plus, Menu, ArrowRight, Users, Clock, Star, MapPin, Phone, Globe, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 
-export default function HomePage() {
-  const { data: session, status } = useSession()
+interface Restaurant {
+  id: string
+  name: string
+  description?: string
+  address?: string
+  phone?: string
+  website?: string
+  slug: string
+  menuCount: number
+  latestMenu?: any
+}
 
-  const features = [
-    {
-      icon: Camera,
-      title: 'AI Menu Extraction',
-      description: 'Simply take a photo of your menu and our AI will extract all items, prices, and descriptions automatically.'
-    },
-    {
-      icon: Smartphone,
-      title: 'Mobile-First Design',
-      description: 'Beautiful, responsive menus that work perfectly on all devices with PWA support for app-like experience.'
-    },
-    {
-      icon: Zap,
-      title: 'Instant Updates',
-      description: 'Update prices and availability in real-time. Changes are reflected immediately on your public menu.'
-    },
-    {
-      icon: Globe,
-      title: 'Public URLs',
-      description: 'Get a unique URL for your restaurant that you can share anywhere - QR codes, social media, websites.'
+export default function HomePage() {
+  const { data: session } = useSession()
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    loadRestaurants()
+  }, [])
+
+  const loadRestaurants = async () => {
+    try {
+      const response = await fetch('/api/restaurants/public')
+      if (response.ok) {
+        const data = await response.json()
+        setRestaurants(data.restaurants)
+      }
+    } catch (error) {
+      console.error('Error loading restaurants:', error)
+    } finally {
+      setIsLoading(false)
     }
-  ]
+  }
+
+  const getPreviewCategories = (restaurant: Restaurant) => {
+    if (!restaurant.latestMenu?.extractedData?.categories) return []
+    return restaurant.latestMenu.extractedData.categories.slice(0, 3)
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      {/* Navigation */}
+      <nav className="bg-white/95 backdrop-blur-sm border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <Menu className="h-8 w-8 text-blue-600" />
@@ -43,226 +58,252 @@ export default function HomePage() {
           </div>
           
           <div className="flex items-center space-x-4">
-            {status === 'loading' ? (
-              <div className="h-9 w-20 bg-gray-200 animate-pulse rounded-md" />
-            ) : session ? (
-              <div className="flex items-center space-x-3">
-                <span className="text-sm text-gray-600">Welcome, {session.user?.name}</span>
-                <Button asChild>
-                  <Link href="/dashboard">Dashboard</Link>
-                </Button>
-              </div>
+            <Link href="/how-it-works">
+              <Button variant="outline">How it Works</Button>
+            </Link>
+            {session ? (
+              <Link href="/dashboard">
+                <Button>Manage My Restaurant</Button>
+              </Link>
             ) : (
               <Button onClick={() => signIn('google')} className="bg-blue-600 hover:bg-blue-700">
-                Sign In with Google
+                Add Your Restaurant
               </Button>
             )}
           </div>
         </div>
-      </header>
+      </nav>
 
       {/* Hero Section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto text-center max-w-4xl">
-          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-            Transform Your Menu with{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-              AI Magic
-            </span>
+      <section className="container mx-auto px-4 py-16">
+        <div className="text-center max-w-4xl mx-auto mb-16">
+          <h1 className="text-5xl font-bold text-gray-900 mb-6">
+            Discover Amazing 
+            <span className="text-blue-600"> Restaurant Menus</span>
           </h1>
-          <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-            Take a photo of your restaurant menu and get a beautiful, professional digital menu in minutes. 
-            No design skills needed, no coding required.
+          <p className="text-xl text-gray-600 mb-8">
+            Browse digital menus from restaurants around you. Restaurant owners can easily 
+            create beautiful digital menus by taking a photo - our AI does the rest!
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {session ? (
-              <Button size="lg" asChild className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-3">
-                <Link href="/dashboard">
-                  Go to Dashboard <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              </Button>
+              <Link href="/dashboard">
+                <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
+                  <Camera className="w-5 h-5 mr-2" />
+                  Add Your Restaurant
+                </Button>
+              </Link>
             ) : (
-              <Button 
-                size="lg" 
-                onClick={() => signIn('google')}
-                className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-3"
-              >
-                Get Started Free <ArrowRight className="ml-2 h-5 w-5" />
+              <Button size="lg" onClick={() => signIn('google')} className="bg-blue-600 hover:bg-blue-700">
+                <Camera className="w-5 h-5 mr-2" />
+                List Your Restaurant
               </Button>
             )}
-            <Button size="lg" variant="outline" className="text-lg px-8 py-3">
-              View Demo
-            </Button>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-2xl mx-auto">
-            {[
-              { number: '95%', label: 'Accuracy Rate' },
-              { number: '< 2min', label: 'Setup Time' },
-              { number: '100%', label: 'Free to Start' }
-            ].map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="text-3xl font-bold text-blue-600">{stat.number}</div>
-                <div className="text-gray-600">{stat.label}</div>
-              </div>
-            ))}
+            <Link href="/how-it-works">
+              <Button size="lg" variant="outline">
+                <Plus className="w-5 h-5 mr-2" />
+                Learn More
+              </Button>
+            </Link>
           </div>
         </div>
-      </section>
 
-      {/* Features Section */}
-      <section className="py-20 px-4 bg-white">
-        <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Everything You Need to Go Digital
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Our platform provides all the tools you need to create, manage, and share beautiful digital menus.
-            </p>
+        {/* Restaurant Directory */}
+        <div className="mb-16">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-3xl font-bold text-gray-900">Featured Restaurants</h2>
+            <Badge variant="secondary" className="text-sm">
+              {restaurants.length} Restaurant{restaurants.length !== 1 ? 's' : ''} Listed
+            </Badge>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => {
-              const Icon = feature.icon
-              return (
-                <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
-                  <CardHeader className="text-center pb-4">
-                    <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                      <Icon className="h-8 w-8 text-blue-600" />
-                    </div>
-                    <CardTitle className="text-xl">{feature.title}</CardTitle>
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({length: 6}).map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader>
+                    <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full"></div>
                   </CardHeader>
                   <CardContent>
-                    <CardDescription className="text-center text-gray-600 leading-relaxed">
-                      {feature.description}
-                    </CardDescription>
+                    <div className="space-y-2">
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                    </div>
                   </CardContent>
                 </Card>
-              )
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* How it Works */}
-      <section className="py-20 px-4 bg-gray-50">
-        <div className="container mx-auto max-w-4xl">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              How It Works
-            </h2>
-            <p className="text-xl text-gray-600">
-              Get your digital menu ready in three simple steps
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                step: '1',
-                title: 'Take a Photo',
-                description: 'Use your phone camera to capture your existing menu'
-              },
-              {
-                step: '2',
-                title: 'AI Extraction',
-                description: 'Our AI reads and organizes all your menu items automatically'
-              },
-              {
-                step: '3',
-                title: 'Publish & Share',
-                description: 'Choose a theme and share your beautiful digital menu'
-              }
-            ].map((step, index) => (
-              <div key={index} className="text-center">
-                <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
-                  {step.step}
-                </div>
-                <h3 className="text-xl font-semibold mb-2">{step.title}</h3>
-                <p className="text-gray-600">{step.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 px-4 bg-blue-600">
-        <div className="container mx-auto text-center max-w-3xl">
-          <h2 className="text-4xl font-bold text-white mb-4">
-            Ready to Transform Your Menu?
-          </h2>
-          <p className="text-xl text-blue-100 mb-8">
-            Join hundreds of restaurants already using MenuCard to create beautiful digital menus.
-          </p>
-          
-          {session ? (
-            <Button size="lg" variant="secondary" asChild className="text-lg px-8 py-3">
-              <Link href="/dashboard">
-                Go to Dashboard <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
+              ))}
+            </div>
+          ) : restaurants.length === 0 ? (
+            <div className="text-center py-16">
+              <Menu className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">No restaurants yet</h3>
+              <p className="text-gray-500 mb-6">Be the first restaurant to join MenuCard!</p>
+              {!session && (
+                <Button onClick={() => signIn('google')} className="bg-blue-600 hover:bg-blue-700">
+                  Add Your Restaurant
+                </Button>
+              )}
+            </div>
           ) : (
-            <Button 
-              size="lg" 
-              variant="secondary" 
-              onClick={() => signIn('google')}
-              className="text-lg px-8 py-3"
-            >
-              Start for Free <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {restaurants.map((restaurant) => (
+                <Card key={restaurant.id} className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <CardTitle className="group-hover:text-blue-600 transition-colors">
+                          {restaurant.name}
+                        </CardTitle>
+                        {restaurant.description && (
+                          <CardDescription className="mt-2">
+                            {restaurant.description}
+                          </CardDescription>
+                        )}
+                      </div>
+                      <Badge variant="secondary">
+                        {restaurant.menuCount} menu{restaurant.menuCount !== 1 ? 's' : ''}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {/* Restaurant Info */}
+                    <div className="space-y-2 mb-4">
+                      {restaurant.address && (
+                        <div className="flex items-center text-sm text-gray-500">
+                          <MapPin className="w-4 h-4 mr-2" />
+                          {restaurant.address}
+                        </div>
+                      )}
+                      {restaurant.phone && (
+                        <div className="flex items-center text-sm text-gray-500">
+                          <Phone className="w-4 h-4 mr-2" />
+                          {restaurant.phone}
+                        </div>
+                      )}
+                      {restaurant.website && (
+                        <div className="flex items-center text-sm text-gray-500">
+                          <Globe className="w-4 h-4 mr-2" />
+                          <a 
+                            href={restaurant.website} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="hover:text-blue-600"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Visit Website
+                          </a>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Menu Preview */}
+                    {getPreviewCategories(restaurant).length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-sm font-medium text-gray-700 mb-2">Menu Categories:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {getPreviewCategories(restaurant).map((category: any, index: number) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {category.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <Link href={`/menu/${restaurant.slug}`}>
+                      <Button className="w-full group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                        View Menu
+                        <ExternalLink className="w-4 h-4 ml-2" />
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
+        </div>
+
+        {/* Features */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          <Card className="text-center hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <Camera className="h-8 w-8 text-blue-600" />
+              </div>
+              <CardTitle>1. Take a Photo</CardTitle>
+              <CardDescription>
+                Simply snap a picture of your physical menu with your phone
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="text-center hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <Plus className="h-8 w-8 text-green-600" />
+              </div>
+              <CardTitle>2. AI Extraction</CardTitle>
+              <CardDescription>
+                Our AI automatically extracts items, prices, and descriptions
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="text-center hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
+                <ArrowRight className="h-8 w-8 text-purple-600" />
+              </div>
+              <CardTitle>3. Share Instantly</CardTitle>
+              <CardDescription>
+                Get a beautiful, shareable link for your digital menu
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+
+        {/* Stats */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+            <div>
+              <div className="flex items-center justify-center mb-2">
+                <Users className="h-6 w-6 text-blue-600 mr-2" />
+                <span className="text-3xl font-bold text-gray-900">{restaurants.length}+</span>
+              </div>
+              <p className="text-gray-600">Restaurants Listed</p>
+            </div>
+            
+            <div>
+              <div className="flex items-center justify-center mb-2">
+                <Clock className="h-6 w-6 text-green-600 mr-2" />
+                <span className="text-3xl font-bold text-gray-900">2 min</span>
+              </div>
+              <p className="text-gray-600">Average Setup Time</p>
+            </div>
+            
+            <div>
+              <div className="flex items-center justify-center mb-2">
+                <Star className="h-6 w-6 text-yellow-500 mr-2" />
+                <span className="text-3xl font-bold text-gray-900">4.9/5</span>
+              </div>
+              <p className="text-gray-600">Customer Rating</p>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 bg-gray-900 text-white">
-        <div className="container mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <Menu className="h-6 w-6" />
-                <span className="text-xl font-bold">MenuCard</span>
-              </div>
-              <p className="text-gray-400">
-                AI-powered digital menus for modern restaurants.
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-4">Product</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>Features</li>
-                <li>Pricing</li>
-                <li>Demo</li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>Help Center</li>
-                <li>Contact</li>
-                <li>API Docs</li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>About</li>
-                <li>Blog</li>
-                <li>Privacy</li>
-              </ul>
-            </div>
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="container mx-auto px-4 text-center">
+          <div className="flex items-center justify-center space-x-2 mb-4">
+            <Menu className="h-6 w-6" />
+            <span className="text-xl font-bold">MenuCard</span>
           </div>
-          
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 MenuCard. All rights reserved.</p>
-          </div>
+          <p className="text-gray-400">
+            Making restaurant menus accessible, beautiful, and easy to share.
+          </p>
         </div>
       </footer>
     </div>

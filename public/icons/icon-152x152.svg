@@ -1,0 +1,9 @@
+<svg width="152" height="152" viewBox="0 0 152 152" xmlns="http://www.w3.org/2000/svg">
+  <rect width="152" height="152" fill="#2563eb" rx="15.200000000000001"/>
+  <rect x="22.8" y="30.400000000000002" width="106.39999999999999" height="91.2" rx="7.6000000000000005" fill="white"/>
+  <rect x="30.400000000000002" y="45.6" width="60.800000000000004" height="7.6000000000000005" rx="3.8000000000000003" fill="#2563eb"/>
+  <rect x="30.400000000000002" y="60.800000000000004" width="76" height="4.56" rx="2.28" fill="#9ca3af"/>
+  <rect x="30.400000000000002" y="76" width="68.4" height="4.56" rx="2.28" fill="#9ca3af"/>
+  <rect x="30.400000000000002" y="91.2" width="60.800000000000004" height="4.56" rx="2.28" fill="#9ca3af"/>
+  <text x="76" y="129.2" font-family="Arial, sans-serif" font-size="12.16" font-weight="bold" text-anchor="middle" fill="white">M</text>
+</svg>

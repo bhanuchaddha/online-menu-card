@@ -7,14 +7,17 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { MenuCamera } from '@/components/camera/menu-camera'
 import { MenuList } from '@/components/menu/menu-list'
+import { ManualMenuCreator } from '@/components/menu/manual-menu-creator'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Camera, Plus, Settings, LogOut, Store, Menu } from 'lucide-react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 
 export default function DashboardPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [showCamera, setShowCamera] = useState(false)
+  const [showManualCreator, setShowManualCreator] = useState(false)
   const [isExtracting, setIsExtracting] = useState(false)
   const [refreshMenus, setRefreshMenus] = useState(0)
 
@@ -51,6 +54,41 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Menu extraction error:', error)
       toast.error('Failed to extract menu. Please try again.')
+    } finally {
+      setIsExtracting(false)
+    }
+  }
+
+  const handleManualMenuSave = async (menuData: any) => {
+    setIsExtracting(true)
+    setShowManualCreator(false)
+    
+    try {
+      const response = await fetch('/api/menu/extract', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          extractedData: menuData,
+          isManual: true
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save menu')
+      }
+
+      const result = await response.json()
+      console.log('Manual menu save result:', result)
+      
+      toast.success('Menu created successfully!')
+      // Refresh the menu list
+      setRefreshMenus(prev => prev + 1)
+      
+    } catch (error) {
+      console.error('Manual menu save error:', error)
+      toast.error('Failed to create menu. Please try again.')
     } finally {
       setIsExtracting(false)
     }
@@ -138,28 +176,43 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" variant="outline">
-                Create New Menu
-              </Button>
+              <Dialog open={showManualCreator} onOpenChange={setShowManualCreator}>
+                <DialogTrigger asChild>
+                  <Button className="w-full" variant="outline" disabled={isExtracting}>
+                    {isExtracting ? 'Creating...' : 'Create New Menu'}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Create Menu Manually</DialogTitle>
+                  </DialogHeader>
+                  <ManualMenuCreator 
+                    onSave={handleManualMenuSave}
+                    onCancel={() => setShowManualCreator(false)}
+                  />
+                </DialogContent>
+              </Dialog>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader className="text-center">
-              <div className="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
-                <Store className="h-8 w-8 text-purple-600" />
-              </div>
-              <CardTitle>Restaurant Profile</CardTitle>
-              <CardDescription>
-                Set up your restaurant information and branding
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button className="w-full" variant="outline">
-                Setup Profile
-              </Button>
-            </CardContent>
-          </Card>
+                            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                    <CardHeader className="text-center">
+                      <div className="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
+                        <Store className="h-8 w-8 text-purple-600" />
+                      </div>
+                      <CardTitle>Restaurant Profile</CardTitle>
+                      <CardDescription>
+                        Set up your restaurant information and branding
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Link href="/dashboard/restaurant">
+                        <Button className="w-full" variant="outline">
+                          Setup Profile
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
         </div>
 
         {/* Menu Management */}

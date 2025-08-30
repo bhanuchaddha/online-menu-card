@@ -14,31 +14,45 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { imageData } = body
+    const { imageData, extractedData, isManual } = body
 
-    if (!imageData) {
-      return NextResponse.json({ error: 'Image data is required' }, { status: 400 })
+    let extractionResult
+    let imageUrl = '/icons/menucard-icon.svg' // Default placeholder for manual menus
+    let uploadResult = null
+
+    if (isManual) {
+      // Manual menu creation
+      if (!extractedData) {
+        return NextResponse.json({ error: 'Menu data is required for manual creation' }, { status: 400 })
+      }
+      extractionResult = extractedData
+    } else {
+      // AI-based extraction from image
+      if (!imageData) {
+        return NextResponse.json({ error: 'Image data is required' }, { status: 400 })
+      }
+
+      // Upload image to Cloudinary
+      uploadResult = await cloudinaryService.uploadImage(imageData, 'menu-extractions')
+      imageUrl = uploadResult.secure_url
+      
+      // Extract menu using OpenRouter
+      const openRouterService = new OpenRouterService()
+      extractionResult = await openRouterService.extractMenuFromImage(uploadResult.secure_url)
     }
 
-    // Upload image to Cloudinary
-    const uploadResult = await cloudinaryService.uploadImage(imageData, 'menu-extractions')
-    
-    // Extract menu using OpenRouter
-    const openRouterService = new OpenRouterService()
-    const extractionResult = await openRouterService.extractMenuFromImage(uploadResult.secure_url)
-
-    // Save to database using Supabase
+    // Save to database
     const savedMenu = await menuService.saveMenu({
       userId: session.user.id,
       restaurantName: extractionResult.restaurant_name || 'Untitled Restaurant',
-      imageUrl: uploadResult.secure_url,
+      imageUrl: imageUrl,
       extractedData: extractionResult
     })
 
     return NextResponse.json({
       success: true,
       data: {
-        image: uploadResult,
+        image: uploadResult || { secure_url: imageUrl },
         extraction: extractionResult,
         savedMenu: savedMenu
       }

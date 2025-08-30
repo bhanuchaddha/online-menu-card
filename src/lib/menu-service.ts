@@ -164,6 +164,106 @@ export class MenuService {
     }
   }
 
+  // Get user's restaurants
+  async getUserRestaurants(userId: string): Promise<RestaurantData[]> {
+    try {
+      const restaurants = await prisma.restaurant.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' }
+      })
+
+      return restaurants
+    } catch (error) {
+      console.error('Error fetching user restaurants:', error)
+      return []
+    }
+  }
+
+  // Update restaurant
+  async updateRestaurant(restaurantId: string, updates: Partial<RestaurantData>): Promise<RestaurantData | null> {
+    try {
+      const updateData: Partial<RestaurantData> = {}
+      
+      if (updates.name !== undefined) updateData.name = updates.name
+      if (updates.description !== undefined) updateData.description = updates.description
+      if (updates.address !== undefined) updateData.address = updates.address
+      if (updates.phone !== undefined) updateData.phone = updates.phone
+      if (updates.website !== undefined) updateData.website = updates.website
+      if (updates.slug !== undefined) updateData.slug = updates.slug
+
+      const updatedRestaurant = await prisma.restaurant.update({
+        where: { id: restaurantId },
+        data: updateData
+      })
+
+      return updatedRestaurant
+    } catch (error) {
+      console.error('Error updating restaurant:', error)
+      return null
+    }
+  }
+
+  // Get all public restaurants with their menus for homepage
+  async getAllPublicRestaurants(): Promise<Array<RestaurantData & { menuCount: number; latestMenu?: MenuData }>> {
+    try {
+      const restaurants = await prisma.restaurant.findMany({
+        orderBy: { createdAt: 'desc' },
+      })
+
+      // Get menu counts and latest menu for each restaurant
+      const restaurantsWithMenus = await Promise.all(
+        restaurants.map(async (restaurant) => {
+          const menuCount = await prisma.menu.count({
+            where: { userId: restaurant.userId }
+          })
+
+          const latestMenu = await prisma.menu.findFirst({
+            where: { userId: restaurant.userId },
+            orderBy: { createdAt: 'desc' }
+          })
+
+          return {
+            ...restaurant,
+            menuCount,
+            latestMenu: latestMenu || undefined
+          }
+        })
+      )
+
+      // Filter to only show restaurants that have at least one menu
+      return restaurantsWithMenus.filter(restaurant => restaurant.menuCount > 0)
+    } catch (error) {
+      console.error('Error fetching public restaurants:', error)
+      return []
+    }
+  }
+
+  // Get restaurant with all its menus for public display
+  async getPublicRestaurantWithMenus(slug: string): Promise<{
+    restaurant: RestaurantData | null
+    menus: MenuData[]
+  }> {
+    try {
+      const restaurant = await prisma.restaurant.findUnique({
+        where: { slug }
+      })
+
+      if (!restaurant) {
+        return { restaurant: null, menus: [] }
+      }
+
+      const menus = await prisma.menu.findMany({
+        where: { userId: restaurant.userId },
+        orderBy: { createdAt: 'desc' }
+      })
+
+      return { restaurant, menus }
+    } catch (error) {
+      console.error('Error fetching public restaurant with menus:', error)
+      return { restaurant: null, menus: [] }
+    }
+  }
+
   // Cleanup method for proper disconnection
   async disconnect(): Promise<void> {
     await prisma.$disconnect()
