@@ -169,7 +169,7 @@ Response format:
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'meta-llama/llama-3.1-8b-instruct:free',
+          model: 'google/gemini-2.5-flash-image-preview:free',
           messages,
           max_tokens: options.maxTokens || 500,
           temperature: options.temperature || 0.7,
