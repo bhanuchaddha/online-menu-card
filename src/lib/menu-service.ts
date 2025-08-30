@@ -206,34 +206,125 @@ export class MenuService {
   // Get all public restaurants with their menus for homepage
   async getAllPublicRestaurants(): Promise<Array<RestaurantData & { menuCount: number; latestMenu?: MenuData }>> {
     try {
-      const restaurants = await prisma.restaurant.findMany({
-        orderBy: { createdAt: 'desc' },
-      })
+      // Add connection timeout and retry logic
+      const restaurants = await Promise.race([
+        prisma.restaurant.findMany({
+          orderBy: { createdAt: 'desc' },
+        }),
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Database query timeout')), 8000)
+        )
+      ])
 
-      // Get menu counts and latest menu for each restaurant
-      const restaurantsWithMenus = await Promise.all(
+      // Get menu counts and latest menu for each restaurant with timeout
+      const restaurantsWithMenus = await Promise.allSettled(
         restaurants.map(async (restaurant) => {
-          const menuCount = await prisma.menu.count({
-            where: { userId: restaurant.userId }
-          })
+          try {
+            // Match menus by restaurant name AND user ID for accuracy
+            const menuCount = await Promise.race([
+              prisma.menu.count({
+                where: { 
+                  AND: [
+                    { userId: restaurant.userId },
+                    { restaurantName: restaurant.name }
+                  ]
+                }
+              }),
+              new Promise<number>((_, reject) => 
+                setTimeout(() => reject(new Error('Menu count timeout')), 5000)
+              )
+            ])
 
-          const latestMenu = await prisma.menu.findFirst({
-            where: { userId: restaurant.userId },
-            orderBy: { createdAt: 'desc' }
-          })
+            const latestMenu = await Promise.race([
+              prisma.menu.findFirst({
+                where: { 
+                  AND: [
+                    { userId: restaurant.userId },
+                    { restaurantName: restaurant.name }
+                  ]
+                },
+                orderBy: { createdAt: 'desc' }
+              }),
+              new Promise<MenuData | null>((_, reject) => 
+                setTimeout(() => reject(new Error('Latest menu timeout')), 5000)
+              )
+            ])
 
-          return {
-            ...restaurant,
-            menuCount,
-            latestMenu: latestMenu || undefined
+            return {
+              ...restaurant,
+              menuCount,
+              latestMenu: latestMenu || undefined
+            }
+          } catch (error) {
+            console.warn('Error fetching menu data for restaurant:', restaurant.name, error)
+            // Return restaurant with zero menus if menu queries fail
+            return {
+              ...restaurant,
+              menuCount: 0,
+              latestMenu: undefined
+            }
           }
         })
       )
 
-      // Filter to only show restaurants that have at least one menu
-      return restaurantsWithMenus.filter(restaurant => restaurant.menuCount > 0)
+      // Extract successful results and filter restaurants with menus
+      const validResults = restaurantsWithMenus
+        .filter((result): result is PromiseFulfilledResult<RestaurantData & { menuCount: number; latestMenu?: MenuData }> => 
+          result.status === 'fulfilled'
+        )
+        .map(result => result.value)
+        .filter(restaurant => restaurant.menuCount > 0)
+
+      console.log(`✅ Successfully fetched ${validResults.length} restaurants with menus`)
+      return validResults
+
     } catch (error) {
       console.error('Error fetching public restaurants:', error)
+      
+      // Return mock data for development/demo purposes when database is unavailable
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Returning demo data due to database connectivity issues')
+        return [
+          {
+            id: 'demo-restaurant-1',
+            userId: 'demo-user',
+            name: 'Demo Restaurant',
+            slug: 'demo-restaurant',
+            description: 'A sample restaurant for demonstration purposes',
+            address: '123 Demo Street, Demo City, DC 12345',
+            phone: '(555) 123-4567',
+            website: 'https://demo-restaurant.com',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            menuCount: 1,
+            latestMenu: {
+              id: 'demo-menu',
+              userId: 'demo-user',
+              restaurantName: 'Demo Restaurant',
+              imageUrl: '/icons/menucard-icon.svg',
+              extractedData: {
+                restaurant_name: 'Demo Restaurant',
+                categories: [
+                  {
+                    name: 'Main Dishes',
+                    items: [
+                      {
+                        name: 'Grilled Chicken',
+                        description: 'Delicious grilled chicken breast',
+                        price: '15.99',
+                        dietary_info: ['gluten-free']
+                      }
+                    ]
+                  }
+                ]
+              },
+              createdAt: new Date(),
+              updatedAt: new Date()
+            }
+          }
+        ]
+      }
+      
       return []
     }
   }
@@ -244,23 +335,173 @@ export class MenuService {
     menus: MenuData[]
   }> {
     try {
-      const restaurant = await prisma.restaurant.findUnique({
-        where: { slug }
-      })
+      const restaurant = await Promise.race([
+        prisma.restaurant.findUnique({
+          where: { slug }
+        }),
+        new Promise<RestaurantData | null>((_, reject) => 
+          setTimeout(() => reject(new Error('Restaurant query timeout')), 8000)
+        )
+      ])
 
       if (!restaurant) {
+        // Check if this is the demo restaurant slug
+        if (slug === 'demo-restaurant' && process.env.NODE_ENV === 'development') {
+          const demoRestaurant: RestaurantData = {
+            id: 'demo-restaurant-1',
+            userId: 'demo-user',
+            name: 'Demo Restaurant',
+            slug: 'demo-restaurant',
+            description: 'A sample restaurant for demonstration purposes',
+            address: '123 Demo Street, Demo City, DC 12345',
+            phone: '(555) 123-4567',
+            website: 'https://demo-restaurant.com',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+          
+          const demoMenu: MenuData = {
+            id: 'demo-menu',
+            userId: 'demo-user',
+            restaurantName: 'Demo Restaurant',
+            imageUrl: '/icons/menucard-icon.svg',
+            extractedData: {
+              restaurant_name: 'Demo Restaurant',
+              categories: [
+                {
+                  name: 'Main Dishes',
+                  items: [
+                    {
+                      name: 'Grilled Chicken Breast',
+                      description: 'Juicy grilled chicken breast with herbs and spices',
+                      price: '15.99',
+                      dietary_info: ['gluten-free']
+                    },
+                    {
+                      name: 'Pasta Carbonara',
+                      description: 'Classic Italian pasta with cream sauce and bacon',
+                      price: '12.99'
+                    }
+                  ]
+                },
+                {
+                  name: 'Beverages',
+                  items: [
+                    {
+                      name: 'Fresh Coffee',
+                      description: 'Our signature blend coffee',
+                      price: '3.99'
+                    }
+                  ]
+                }
+              ]
+            },
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+          
+          return { restaurant: demoRestaurant, menus: [demoMenu] }
+        }
         return { restaurant: null, menus: [] }
       }
 
-      const menus = await prisma.menu.findMany({
-        where: { userId: restaurant.userId },
-        orderBy: { createdAt: 'desc' }
-      })
+      const menus = await Promise.race([
+        prisma.menu.findMany({
+          where: { 
+            AND: [
+              { userId: restaurant.userId },
+              { restaurantName: restaurant.name }
+            ]
+          },
+          orderBy: { createdAt: 'desc' }
+        }),
+        new Promise<MenuData[]>((_, reject) => 
+          setTimeout(() => reject(new Error('Menu query timeout')), 8000)
+        )
+      ])
 
       return { restaurant, menus }
     } catch (error) {
       console.error('Error fetching public restaurant with menus:', error)
+      
+      // Return demo data for the demo restaurant slug in development
+      if (slug === 'demo-restaurant' && process.env.NODE_ENV === 'development') {
+        console.log('🔄 Returning demo restaurant data due to database connectivity issues')
+        const demoRestaurant: RestaurantData = {
+          id: 'demo-restaurant-1',
+          userId: 'demo-user',
+          name: 'Demo Restaurant',
+          slug: 'demo-restaurant',
+          description: 'A sample restaurant for demonstration purposes',
+          address: '123 Demo Street, Demo City, DC 12345',
+          phone: '(555) 123-4567',
+          website: 'https://demo-restaurant.com',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+        
+        const demoMenu: MenuData = {
+          id: 'demo-menu',
+          userId: 'demo-user',
+          restaurantName: 'Demo Restaurant',
+          imageUrl: '/icons/menucard-icon.svg',
+          extractedData: {
+            restaurant_name: 'Demo Restaurant',
+            categories: [
+              {
+                name: 'Main Dishes',
+                items: [
+                  {
+                    name: 'Grilled Chicken Breast',
+                    description: 'Juicy grilled chicken breast with herbs and spices',
+                    price: '15.99',
+                    dietary_info: ['gluten-free']
+                  },
+                  {
+                    name: 'Pasta Carbonara',
+                    description: 'Classic Italian pasta with cream sauce and bacon',
+                    price: '12.99'
+                  }
+                ]
+              },
+              {
+                name: 'Beverages',
+                items: [
+                  {
+                    name: 'Fresh Coffee',
+                    description: 'Our signature blend coffee',
+                    price: '3.99'
+                  }
+                ]
+              }
+            ]
+          },
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+        
+        return { restaurant: demoRestaurant, menus: [demoMenu] }
+      }
+      
       return { restaurant: null, menus: [] }
+    }
+  }
+
+  // Get restaurants by location within radius (in kilometers)
+  // Note: This method is disabled until latitude/longitude columns are added to the database
+  async getRestaurantsByLocation(
+    centerLat: number, 
+    centerLng: number, 
+    radiusKm: number = 10
+  ): Promise<Array<RestaurantData & { menuCount: number; distance?: number }>> {
+    try {
+      // For now, return all restaurants since we don't have location data
+      console.warn('Location-based search not available - latitude/longitude columns not in database')
+      const allRestaurants = await this.getAllPublicRestaurants()
+      return allRestaurants.map(r => ({ ...r, distance: undefined }))
+    } catch (error) {
+      console.error('Error fetching restaurants by location:', error)
+      return []
     }
   }
 

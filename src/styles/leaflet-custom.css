@@ -1,0 +1,43 @@
+/* Leaflet Map Custom Styles */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  z-index: 1;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+}
+
+.leaflet-popup-tip {
+  background: white;
+}
+
+.custom-popup .leaflet-popup-content {
+  margin: 0;
+}
+
+.custom-user-marker,
+.custom-restaurant-marker,
+.custom-restaurant-picker {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Fix for Leaflet controls in dark mode */
+.leaflet-control-zoom a {
+  background-color: white;
+  color: #333;
+}
+
+.leaflet-control-attribution {
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+/* Responsive map styles */
+@media (max-width: 768px) {
+  .leaflet-control-zoom {
+    margin-right: 10px;
+    margin-top: 10px;
+  }
+}

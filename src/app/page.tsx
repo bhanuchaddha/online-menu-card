@@ -4,6 +4,7 @@ import { useSession, signIn } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { RestaurantMap } from '@/components/map/restaurant-map'
 import { Camera, Plus, Menu, ArrowRight, Users, Clock, Star, MapPin, Phone, Globe, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 
@@ -15,6 +16,8 @@ interface Restaurant {
   phone?: string
   website?: string
   slug: string
+  latitude: number | null
+  longitude: number | null
   menuCount: number
   latestMenu?: any
 }
@@ -23,6 +26,7 @@ export default function HomePage() {
   const { data: session } = useSession()
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [currentView, setCurrentView] = useState<'list' | 'map'>('list')
 
   useEffect(() => {
     loadRestaurants()
@@ -113,9 +117,6 @@ export default function HomePage() {
         <div className="mb-16">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-3xl font-bold text-gray-900">Featured Restaurants</h2>
-            <Badge variant="secondary" className="text-sm">
-              {restaurants.length} Restaurant{restaurants.length !== 1 ? 's' : ''} Listed
-            </Badge>
           </div>
 
           {isLoading ? (
@@ -147,81 +148,14 @@ export default function HomePage() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {restaurants.map((restaurant) => (
-                <Card key={restaurant.id} className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <CardTitle className="group-hover:text-blue-600 transition-colors">
-                          {restaurant.name}
-                        </CardTitle>
-                        {restaurant.description && (
-                          <CardDescription className="mt-2">
-                            {restaurant.description}
-                          </CardDescription>
-                        )}
-                      </div>
-                      <Badge variant="secondary">
-                        {restaurant.menuCount} menu{restaurant.menuCount !== 1 ? 's' : ''}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {/* Restaurant Info */}
-                    <div className="space-y-2 mb-4">
-                      {restaurant.address && (
-                        <div className="flex items-center text-sm text-gray-500">
-                          <MapPin className="w-4 h-4 mr-2" />
-                          {restaurant.address}
-                        </div>
-                      )}
-                      {restaurant.phone && (
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Phone className="w-4 h-4 mr-2" />
-                          {restaurant.phone}
-                        </div>
-                      )}
-                      {restaurant.website && (
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Globe className="w-4 h-4 mr-2" />
-                          <a 
-                            href={restaurant.website} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="hover:text-blue-600"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Visit Website
-                          </a>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Menu Preview */}
-                    {getPreviewCategories(restaurant).length > 0 && (
-                      <div className="mb-4">
-                        <p className="text-sm font-medium text-gray-700 mb-2">Menu Categories:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {getPreviewCategories(restaurant).map((category: any, index: number) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {category.name}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <Link href={`/menu/${restaurant.slug}`}>
-                      <Button className="w-full group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                        View Menu
-                        <ExternalLink className="w-4 h-4 ml-2" />
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <RestaurantMap
+              restaurants={restaurants.map(r => ({
+                ...r,
+                distance: r.latitude && r.longitude ? undefined : undefined, // Will be calculated in map component
+              }))}
+              onViewChange={setCurrentView}
+              currentView={currentView}
+            />
           )}
         </div>
 

@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import '../styles/leaflet-custom.css'
 import { AuthProvider } from '@/components/providers/session-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { PWAInstallPrompt } from '@/components/pwa/install-prompt'
+import { RestaurantChatbot } from '@/components/chatbot/restaurant-chatbot'
 import Script from 'next/script'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -89,6 +91,7 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <PWAInstallPrompt />
+          <RestaurantChatbot />
           <Toaster richColors position="top-right" />
         </AuthProvider>
         

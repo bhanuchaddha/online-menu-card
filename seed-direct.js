@@ -1,7 +1,14 @@
 #!/usr/bin/env node
 
 import { PrismaClient } from '@prisma/client'
-import 'dotenv/config'
+import { config } from 'dotenv'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
+
+// Load environment variables
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+config({ path: join(__dirname, '.env.local') })
 
 const prisma = new PrismaClient()
 
@@ -165,7 +172,7 @@ function createMenuData(restaurantType, restaurantName) {
         .map(item => ({
           name: item.name,
           description: item.description,
-          price: item.price + (Math.random() * 4 - 2), // Add some price variation
+          price: Math.round((item.price + (Math.random() * 4 - 2)) * 100) / 100, // Add some price variation
           dietary_info: Math.random() > 0.7 ? ['vegetarian'] : [],
           spice_level: restaurantType === 'indian' || restaurantType === 'mexican' ? 
             Math.floor(Math.random() * 4) + 1 : null
@@ -182,95 +189,60 @@ function createMenuData(restaurantType, restaurantName) {
   return menuData
 }
 
-async function createSampleUser() {
-  const user = await prisma.user.upsert({
-    where: { email: 'seed@menucard.com' },
-    update: {},
-    create: {
-      email: 'seed@menucard.com',
-      name: 'Seed Data User',
-      role: 'RESTAURANT_OWNER',
-    },
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0
+    const v = c == 'x' ? r : (r & 0x3 | 0x8)
+    return v.toString(16)
   })
-  return user
 }
 
 async function seedRestaurants() {
   console.log('🌱 Starting restaurant seeding process...\n')
   
-  // Create a user for all seeded restaurants
-  const seedUser = await createSampleUser()
-  console.log('✅ Created seed user')
+  const seedUserId = 'seed-user-id-12345'
+  console.log('✅ Using seed user ID:', seedUserId)
   
   const restaurantTypes = Object.keys(RESTAURANT_TYPES)
-  const restaurants = []
-  const menus = []
+  let totalCreated = 0
   
   // Generate 60 restaurants (10 of each type)
   for (const type of restaurantTypes) {
     const names = RESTAURANT_NAMES[type]
+    console.log(`\n🍽️  Creating ${type} restaurants...`)
     
     for (let i = 0; i < 10; i++) {
       const restaurantName = names[i] || `${names[i % names.length]} ${Math.floor(i / names.length) + 1}`
       const slug = generateSlug(restaurantName) + '-' + Math.random().toString(36).substr(2, 5)
+      const restaurantId = generateUUID()
+      const menuId = generateUUID()
       
-      const restaurant = {
-        userId: seedUser.id,
-        name: restaurantName,
-        slug: slug,
-        description: `Authentic ${type} cuisine with fresh ingredients and traditional recipes. Come experience the flavors of ${restaurantName}!`,
-        address: generateAddress(),
-        phone: generatePhone(),
-        website: generateWebsite(restaurantName)
-      }
-      
-      restaurants.push(restaurant)
-      
-      // Create menu data for this restaurant
-      const menuData = createMenuData(type, restaurantName)
-      const menu = {
-        userId: seedUser.id,
-        restaurantName: restaurantName,
-        imageUrl: `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 100000000)}?w=800&h=600&fit=crop&crop=food`,
-        extractedData: menuData
-      }
-      
-      menus.push(menu)
-    }
-  }
-  
-  console.log(`📊 Generated ${restaurants.length} restaurants and ${menus.length} menus`)
-  console.log('💾 Inserting into database...\n')
-  
-  // Insert restaurants in batches
-  const batchSize = 10
-  for (let i = 0; i < restaurants.length; i += batchSize) {
-    const batch = restaurants.slice(i, i + batchSize)
-    
-    for (const restaurant of batch) {
       try {
-        await prisma.restaurant.create({
-          data: restaurant
-        })
-        console.log(`✅ Created restaurant: ${restaurant.name}`)
+        // Insert restaurant using raw SQL
+        await prisma.$executeRaw`
+          INSERT INTO restaurants (id, user_id, name, slug, description, address, phone, website, created_at, updated_at)
+          VALUES (${restaurantId}::uuid, ${seedUserId}, ${restaurantName}, ${slug}, 
+                  ${`Authentic ${type} cuisine with fresh ingredients and traditional recipes. Come experience the flavors of ${restaurantName}!`},
+                  ${generateAddress()}, ${generatePhone()}, ${generateWebsite(restaurantName)}, 
+                  NOW(), NOW())
+        `
+        
+        // Create menu data for this restaurant
+        const menuData = createMenuData(type, restaurantName)
+        const imageUrl = `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 100000000)}?w=800&h=600&fit=crop&crop=food`
+        
+        // Insert menu using raw SQL
+        await prisma.$executeRaw`
+          INSERT INTO menus (id, user_id, restaurant_name, image_url, extracted_data, created_at, updated_at)
+          VALUES (${menuId}::uuid, ${seedUserId}, ${restaurantName}, ${imageUrl}, 
+                  ${JSON.stringify(menuData)}::jsonb, NOW(), NOW())
+        `
+        
+        totalCreated++
+        console.log(`✅ Created: ${restaurantName} (${totalCreated}/60)`)
+        
       } catch (error) {
-        console.log(`❌ Failed to create restaurant: ${restaurant.name} - ${error.message}`)
-      }
-    }
-  }
-  
-  // Insert menus in batches
-  for (let i = 0; i < menus.length; i += batchSize) {
-    const batch = menus.slice(i, i + batchSize)
-    
-    for (const menu of batch) {
-      try {
-        await prisma.menu.create({
-          data: menu
-        })
-        console.log(`✅ Created menu for: ${menu.restaurantName}`)
-      } catch (error) {
-        console.log(`❌ Failed to create menu for: ${menu.restaurantName} - ${error.message}`)
+        console.log(`❌ Failed to create: ${restaurantName} - ${error.message}`)
       }
     }
   }
@@ -278,17 +250,16 @@ async function seedRestaurants() {
   console.log('\n🎉 Seeding completed successfully!')
   console.log(`📈 Database now contains:`)
   
-  const restaurantCount = await prisma.restaurant.count()
-  const menuCount = await prisma.menu.count()
+  const restaurantCount = await prisma.$queryRaw`SELECT COUNT(*) as count FROM restaurants`
+  const menuCount = await prisma.$queryRaw`SELECT COUNT(*) as count FROM menus`
   
-  console.log(`   • ${restaurantCount} restaurants`)
-  console.log(`   • ${menuCount} menus`)
+  console.log(`   • ${restaurantCount[0].count} restaurants`)
+  console.log(`   • ${menuCount[0].count} menus`)
   
   console.log('\n🌐 Sample restaurant URLs:')
-  const sampleRestaurants = await prisma.restaurant.findMany({
-    take: 5,
-    select: { name: true, slug: true }
-  })
+  const sampleRestaurants = await prisma.$queryRaw`
+    SELECT name, slug FROM restaurants ORDER BY created_at DESC LIMIT 5
+  `
   
   sampleRestaurants.forEach(restaurant => {
     console.log(`   • ${restaurant.name}: http://localhost:3000/menu/${restaurant.slug}`)

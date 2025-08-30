@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { LocationPicker } from '@/components/map/location-picker'
 import { ArrowLeft, Save, Globe, Phone, MapPin, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -18,6 +19,8 @@ interface RestaurantData {
   address?: string
   phone?: string
   website?: string
+  latitude?: number | null
+  longitude?: number | null
   slug?: string
 }
 
@@ -31,6 +34,8 @@ export default function RestaurantProfilePage() {
     address: '',
     phone: '',
     website: '',
+    latitude: null,
+    longitude: null,
   })
   const [isLoading, setIsLoading] = useState(false)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
@@ -71,6 +76,18 @@ export default function RestaurantProfilePage() {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
+  }
+
+  const handleLocationChange = (location: [number, number] | null) => {
+    setRestaurant(prev => ({
+      ...prev,
+      latitude: location ? location[0] : null,
+      longitude: location ? location[1] : null,
+    }))
+  }
+
+  const handleAddressChange = (address: string) => {
+    handleInputChange('address', address)
   }
 
   const handleSave = async () => {
@@ -220,7 +237,23 @@ export default function RestaurantProfilePage() {
                   />
                 </div>
               </div>
+            </CardContent>
+          </Card>
 
+          {/* Location Picker */}
+          <LocationPicker
+            initialLocation={
+              restaurant.latitude && restaurant.longitude 
+                ? [restaurant.latitude, restaurant.longitude] 
+                : null
+            }
+            onLocationChange={handleLocationChange}
+            address={restaurant.address || ''}
+            onAddressChange={handleAddressChange}
+          />
+
+          <Card>
+            <CardContent className="pt-6">
               <Button 
                 onClick={handleSave} 
                 disabled={isLoading}

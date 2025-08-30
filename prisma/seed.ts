@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole, ItemStatus } from '@prisma/client'
+import { PrismaClient, UserRole } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -122,7 +122,7 @@ async function main() {
       categoryId: appetizers.id,
       isVegetarian: true,
       displayOrder: 1,
-      status: ItemStatus.AVAILABLE,
+
     },
     {
       id: 'demo-caesar-salad',
@@ -132,7 +132,7 @@ async function main() {
       categoryId: appetizers.id,
       isVegetarian: true,
       displayOrder: 2,
-      status: ItemStatus.AVAILABLE,
+
     },
     // Pizzas
     {
@@ -143,7 +143,7 @@ async function main() {
       categoryId: pizzas.id,
       isVegetarian: true,
       displayOrder: 1,
-      status: ItemStatus.AVAILABLE,
+
     },
     {
       id: 'demo-pepperoni',
@@ -152,7 +152,7 @@ async function main() {
       price: 21.99,
       categoryId: pizzas.id,
       displayOrder: 2,
-      status: ItemStatus.AVAILABLE,
+
     },
     {
       id: 'demo-supreme',
@@ -161,7 +161,7 @@ async function main() {
       price: 25.99,
       categoryId: pizzas.id,
       displayOrder: 3,
-      status: ItemStatus.AVAILABLE,
+
     },
     // Desserts
     {
@@ -172,7 +172,7 @@ async function main() {
       categoryId: desserts.id,
       isVegetarian: true,
       displayOrder: 1,
-      status: ItemStatus.AVAILABLE,
+
     },
     {
       id: 'demo-gelato',
@@ -182,7 +182,7 @@ async function main() {
       categoryId: desserts.id,
       isVegetarian: true,
       displayOrder: 2,
-      status: ItemStatus.AVAILABLE,
+
     },
   ]
 

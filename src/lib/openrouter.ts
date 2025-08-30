@@ -155,4 +155,36 @@ Response format:
       throw error
     }
   }
+
+  // Generate chat response for chatbot functionality
+  async generateChatResponse(
+    messages: Array<{ role: string; content: string }>, 
+    options: { maxTokens?: number; temperature?: number } = {}
+  ): Promise<string> {
+    try {
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'meta-llama/llama-3.1-8b-instruct:free',
+          messages,
+          max_tokens: options.maxTokens || 500,
+          temperature: options.temperature || 0.7,
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`OpenRouter API error: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      return data.choices[0]?.message?.content || 'I apologize, but I could not generate a response.'
+    } catch (error) {
+      console.error('Error generating chat response:', error)
+      return 'I apologize, but I encountered an error while processing your request. Please try again.'
+    }
+  }
 }
