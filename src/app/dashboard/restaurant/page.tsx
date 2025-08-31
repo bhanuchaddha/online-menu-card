@@ -361,7 +361,7 @@ export default function RestaurantProfilePage() {
               <CardContent>
                 {restaurant?.menu ? (
                    <div className="space-y-4">
-                     <p className="font-semibold">{restaurant.menu.restaurantName}</p>
+                                           <p className="font-semibold">{restaurant.menu.restaurant_name}</p>
                      <div className="flex flex-wrap items-center gap-4">
                        <Button variant="outline" onClick={() => setEditingMenu(restaurant.menu?.extractedData)}>
                          <Edit className="w-4 h-4 mr-2" /> Edit Menu

@@ -165,7 +165,7 @@ export function LeafletMap({ center, restaurants, userLocation, zoom = 13 }: Lea
 
     // Fit bounds to show all markers if there are restaurants
     if (restaurants.length > 0) {
-      const group = new L.featureGroup()
+      const group = new (L as any).featureGroup()
       
       restaurants.forEach((restaurant) => {
         if (restaurant.latitude && restaurant.longitude) {

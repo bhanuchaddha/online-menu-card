@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
   try {
-    const [dimensions, query] = params.path
+    const resolvedParams = await params
+    const [dimensions, query] = resolvedParams.path
     const imageUrl = `https://placeholder.vn/placeholder/${dimensions}?${query}`
 
     const response = await fetch(imageUrl)

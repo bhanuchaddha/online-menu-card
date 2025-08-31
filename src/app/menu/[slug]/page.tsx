@@ -3,9 +3,9 @@ import { menuService } from '@/lib/menu-service'
 import { PublicMenuDisplay } from '@/components/menu/public-menu-display'
 
 interface PageProps {
-  params: {
+  params: Promise<{
     slug: string
-  }
+  }>
 }
 
 export default async function PublicMenuPage({ params }: PageProps) {

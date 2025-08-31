@@ -18,6 +18,11 @@ interface MenuCategory {
   items: MenuItem[]
 }
 
+interface PublicMenuDisplayProps {
+  restaurant: RestaurantData
+  menus: MenuData[]
+}
+
 const mutedColors = [
   '7B8A6B', // Sage Green
   'A89B8D', // Taupe

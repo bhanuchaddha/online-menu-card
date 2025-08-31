@@ -10,9 +10,41 @@
 
 **Transform your restaurant menu from photo to digital in seconds using AI! 📸✨**
 
-[🚀 Live Demo](https://your-demo-url.vercel.app) • [📖 Documentation](#documentation) • [🤝 Contributing](#contributing)
+[🚀 Live Demo](https://online-menu-card-gplbcna0c-bhanuchaddhas-projects.vercel.app/) • [📖 Documentation](#documentation) • [🤝 Contributing](#contributing)
 
 </div>
+
+## 📸 App Screenshots
+
+<div align="center">
+
+### 🏠 Homepage - Modern Landing Experience
+<img src="public/screenshots/homepage.png" alt="Homepage Screenshot" width="800"/>
+
+*Clean, modern interface showcasing the power of AI-driven menu digitization*
+
+### 📱 Menu Upload - AI-Powered Extraction
+<img src="public/screenshots/upload_your_menu.png" alt="Menu Upload Screenshot" width="800"/>
+
+*Simply upload a photo of your menu and watch AI extract all items, prices, and descriptions*
+
+### 🤖 AI Chatbot - Intelligent Menu Assistant
+<img src="public/screenshots/chatbot.png" alt="Chatbot Screenshot" width="800"/>
+
+*Interactive AI chatbot helps customers find exactly what they're looking for*
+
+</div>
+
+## 🎬 Quick Demo
+
+> **Try it yourself!** Visit the [live demo](https://online-menu-card-gplbcna0c-bhanuchaddhas-projects.vercel.app/) and experience the magic of AI-powered menu digitization.
+
+**🚀 Quick Start Flow:**
+1. **Sign in** with your Google account
+2. **Upload** a menu photo (or use the sample menu)
+3. **Watch** AI extract all menu items automatically
+4. **Customize** your digital menu with beautiful themes
+5. **Share** your menu with customers via QR code
 
 ---
 
@@ -96,7 +128,7 @@ This isn't just another menu app - it's a **complete learning playground** showc
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/yourusername/online-menu-card.git
+git clone https://github.com/bhanuchaddha/online-menu-card.git
 cd online-menu-card
 npm install
 ```
@@ -246,23 +278,42 @@ if ('serviceWorker' in navigator) {
 ## 🌟 Key Features Walkthrough
 
 ### 📸 AI Menu Extraction
+<img align="right" src="public/screenshots/upload_your_menu.png" alt="Menu Upload Feature" width="300"/>
+
 1. **Capture**: Take a photo of any menu
-2. **Upload**: Automatic upload to Cloudinary
+2. **Upload**: Automatic upload to Cloudinary  
 3. **Extract**: AI analyzes and extracts menu data
 4. **Edit**: Review and modify extracted information
 5. **Publish**: Generate beautiful digital menu
 
+*The AI-powered extraction feature can intelligently parse menu items, prices, descriptions, and categories from any menu photo with remarkable accuracy.*
+
+<br clear="right"/>
+
+### 🤖 Intelligent Chatbot Assistant
+<img align="left" src="public/screenshots/chatbot.png" alt="AI Chatbot Feature" width="300"/>
+
+- **Smart Recommendations**: AI suggests dishes based on preferences
+- **Natural Language**: Chat naturally about menu items
+- **Instant Answers**: Get immediate responses about ingredients, prices
+- **Multi-language Support**: Communicate in multiple languages
+
+*The integrated chatbot helps customers discover menu items through natural conversation, making the dining experience more interactive and personalized.*
+
+<br clear="left"/>
+
 ### 🏪 Restaurant Management
-- Create restaurant profile
-- Manage menu items and categories
-- Generate QR codes for easy access
-- Real-time menu updates
+- Create restaurant profile with custom branding
+- Manage menu items and categories with drag-and-drop
+- Generate QR codes for easy customer access
+- Real-time menu updates across all platforms
+- Analytics and insights dashboard
 
 ### 🔍 Smart Search & Discovery
-- Text-based restaurant search
-- Location-based filtering
-- AI-powered recommendations
-- Public restaurant directory
+- Text-based restaurant search with fuzzy matching
+- Location-based filtering with map integration
+- AI-powered recommendations based on user preferences
+- Public restaurant directory with ratings and reviews
 
 ## 🚀 Deployment
 
@@ -306,9 +357,9 @@ We love contributions! Here's how you can help:
 
 Found a bug or need help? 
 
-- 🐛 [Report Issues](https://github.com/yourusername/online-menu-card/issues)
-- 💬 [Discussions](https://github.com/yourusername/online-menu-card/discussions)
-- 📧 [Email Support](mailto:support@yourproject.com)
+- 🐛 [Report Issues](https://github.com/bhanuchaddha/online-menu-card/issues)
+- 💬 [Discussions](https://github.com/bhanuchaddha/online-menu-card/discussions)
+- 📧 [Email Support](mailto:bhanu.chaddha@example.com)
 
 ## 📄 License
 
@@ -328,8 +379,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **⭐ Star this repo if you found it helpful!**
 
-Made with ❤️ by [Your Name](https://github.com/yourusername)
+Made with ❤️ by [Bhanu Chaddha](https://github.com/bhanuchaddha)
 
-[🚀 Deploy Now](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/online-menu-card) • [📖 Learn More](https://your-docs-url.com) • [🤝 Get Support](https://github.com/yourusername/online-menu-card/discussions)
+[🚀 Deploy Now](https://vercel.com/new/clone?repository-url=https://github.com/bhanuchaddha/online-menu-card) • [📖 Learn More](https://online-menu-card-gplbcna0c-bhanuchaddhas-projects.vercel.app/) • [🤝 Get Support](https://github.com/bhanuchaddha/online-menu-card/discussions)
 
 </div>
