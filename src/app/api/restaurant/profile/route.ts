@@ -12,8 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user's restaurant profile
-    const restaurants = await menuService.getUserRestaurants(session.user.id)
-    const restaurant = restaurants.length > 0 ? restaurants[0] : null
+    const restaurant = await menuService.getUserRestaurant(session.user.id);
 
     return NextResponse.json({
       success: true,
@@ -47,12 +46,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already has a restaurant
-    const existingRestaurants = await menuService.getUserRestaurants(session.user.id)
+    const existingRestaurant = await menuService.getUserRestaurant(session.user.id);
     
-    let restaurant
-    if (existingRestaurants.length > 0) {
+    let restaurant;
+    if (existingRestaurant) {
       // Update existing restaurant
-      restaurant = await menuService.updateRestaurant(existingRestaurants[0].id, {
+      restaurant = await menuService.updateRestaurant(existingRestaurant.id, {
         name: name.trim(),
         description: description?.trim() || null,
         address: address?.trim() || null,

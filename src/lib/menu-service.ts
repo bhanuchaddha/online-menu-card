@@ -129,7 +129,9 @@ export class MenuService {
   // Restaurant management
   async saveRestaurant(restaurant: Omit<RestaurantData, 'id' | 'createdAt' | 'updatedAt'>): Promise<RestaurantData | null> {
     try {
-      const slug = restaurant.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+      const slug = restaurant.slug || restaurant.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+      
+      console.log('Attempting to save restaurant:', { userId: restaurant.userId, name: restaurant.name, slug })
       
       const savedRestaurant = await prisma.restaurant.create({
         data: {
@@ -143,9 +145,11 @@ export class MenuService {
         }
       })
 
+      console.log('Restaurant saved successfully:', savedRestaurant.id)
       return savedRestaurant
     } catch (error) {
       console.error('Restaurant save error:', error)
+      console.error('Error details:', error instanceof Error ? error.message : String(error))
       return null
     }
   }
@@ -164,25 +168,23 @@ export class MenuService {
     }
   }
 
-  // Get user's restaurants
-  async getUserRestaurants(userId: string): Promise<RestaurantData[]> {
+  // Get user's restaurant
+  async getUserRestaurant(userId: string): Promise<RestaurantData | null> {
     try {
-      const restaurants = await prisma.restaurant.findMany({
+      const restaurant = await prisma.restaurant.findFirst({
         where: { userId },
-        orderBy: { createdAt: 'desc' }
-      })
-
-      return restaurants
+      });
+      return restaurant;
     } catch (error) {
-      console.error('Error fetching user restaurants:', error)
-      return []
+      console.error('Error fetching user restaurant:', error);
+      return null;
     }
   }
 
   // Update restaurant
   async updateRestaurant(restaurantId: string, updates: Partial<RestaurantData>): Promise<RestaurantData | null> {
     try {
-      const updateData: Partial<RestaurantData> = {}
+      const updateData: any = {}
       
       if (updates.name !== undefined) updateData.name = updates.name
       if (updates.description !== undefined) updateData.description = updates.description
@@ -191,14 +193,18 @@ export class MenuService {
       if (updates.website !== undefined) updateData.website = updates.website
       if (updates.slug !== undefined) updateData.slug = updates.slug
 
+      console.log('Attempting to update restaurant:', restaurantId, updateData)
+
       const updatedRestaurant = await prisma.restaurant.update({
         where: { id: restaurantId },
         data: updateData
       })
 
+      console.log('Restaurant updated successfully:', updatedRestaurant.id)
       return updatedRestaurant
     } catch (error) {
       console.error('Error updating restaurant:', error)
+      console.error('Error details:', error instanceof Error ? error.message : String(error))
       return null
     }
   }
@@ -218,7 +224,7 @@ export class MenuService {
 
       // Get menu counts and latest menu for each restaurant with timeout
       const restaurantsWithMenus = await Promise.allSettled(
-        restaurants.map(async (restaurant) => {
+        restaurants.map(async (restaurant: RestaurantData) => {
           try {
             // Match menus by restaurant name AND user ID for accuracy
             const menuCount = await Promise.race([
@@ -527,6 +533,38 @@ export class MenuService {
       return []
     }
   }
+  
+  // Upsert a menu for a specific restaurant
+  async upsertMenu(restaurantId: string, userId: string, menuData: Partial<MenuData>): Promise<MenuData | null> {
+    try {
+      const restaurant = await prisma.restaurant.findUnique({ where: { id: restaurantId } });
+      if (!restaurant) {
+        throw new Error("Restaurant not found");
+      }
+
+      // Always use the restaurant's name, not from menu data
+      const upsertedMenu = await prisma.menu.upsert({
+        where: { restaurantId },
+        update: {
+          restaurantName: restaurant.name,
+          imageUrl: menuData.imageUrl || 'default-image-url.jpg',
+          extractedData: menuData.extractedData,
+        },
+        create: {
+          restaurantId,
+          userId,
+          restaurantName: restaurant.name,
+          imageUrl: menuData.imageUrl || 'default-image-url.jpg',
+          extractedData: menuData.extractedData,
+        },
+      });
+      return upsertedMenu;
+    } catch (error) {
+      console.error('Error upserting menu:', error);
+      return null;
+    }
+  }
+
 
   // Cleanup method for proper disconnection
   async disconnect(): Promise<void> {

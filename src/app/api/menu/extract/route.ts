@@ -41,21 +41,31 @@ export async function POST(request: NextRequest) {
       extractionResult = await openRouterService.extractMenuFromImage(uploadResult.secure_url)
     }
 
-    // Save to database
-    const savedMenu = await menuService.saveMenu({
-      userId: session.user.id,
-      restaurantName: extractionResult.restaurant_name || 'Untitled Restaurant',
-      imageUrl: imageUrl,
-      extractedData: extractionResult
-    })
+    // Get user's restaurant
+    const userRestaurant = await menuService.getUserRestaurant(session.user.id);
+    if (!userRestaurant) {
+      return NextResponse.json({ error: 'User has no restaurant. Please create a restaurant first.' }, { status: 400 });
+    }
+
+    // Use upsert to create or update the menu
+    const savedMenu = await menuService.upsertMenu(
+      userRestaurant.id,
+      session.user.id,
+      {
+        imageUrl: imageUrl,
+        extractedData: extractionResult
+      }
+    );
+
+    if (!savedMenu) {
+      return NextResponse.json({ error: 'Failed to save extracted menu' }, { status: 500 });
+    }
 
     return NextResponse.json({
       success: true,
-      data: {
-        image: uploadResult || { secure_url: imageUrl },
-        extraction: extractionResult,
-        savedMenu: savedMenu
-      }
+      extractedData: extractionResult,
+      menu: savedMenu,
+      imageUrl: imageUrl
     })
   } catch (error) {
     console.error('Menu extraction error:', error)

@@ -1,12 +1,13 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession, signIn } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { RestaurantMap } from '@/components/map/restaurant-map'
-import { Camera, Plus, Menu, ArrowRight, Users, Clock, Star, MapPin, Phone, Globe, ExternalLink } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Camera, Plus, Menu, ArrowRight, Users, Clock, Star, MapPin, Phone, Globe, ExternalLink, Search, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { useDebounce } from 'use-debounce'
 
 interface Restaurant {
   id: string
@@ -16,25 +17,70 @@ interface Restaurant {
   phone?: string
   website?: string
   slug: string
-  latitude: number | null
-  longitude: number | null
   menuCount: number
   latestMenu?: any
+}
+
+function RestaurantList({ restaurants }: { restaurants: Restaurant[] }) {
+  if (restaurants.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <Menu className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+        <h3 className="text-xl font-semibold text-gray-600 mb-2">No restaurants found</h3>
+        <p className="text-gray-500">Try a different search term or check back later.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {restaurants.map(restaurant => (
+        <Card key={restaurant.id} className="hover:shadow-lg transition-shadow duration-300 flex flex-col">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold">{restaurant.name}</CardTitle>
+            <CardDescription>{restaurant.address}</CardDescription>
+          </CardHeader>
+          <CardContent className="flex-grow">
+            <p className="text-gray-600 mb-4">{restaurant.description}</p>
+            {restaurant.latestMenu?.extractedData?.categories?.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="font-semibold">Menu highlights:</h4>
+                <div className="flex flex-wrap gap-2">
+                  {restaurant.latestMenu.extractedData.categories.slice(0, 3).map((cat: any) => (
+                    <Badge key={cat.name} variant="secondary">{cat.name}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+          <div className="p-6 pt-0">
+            <Link href={`/menu/${restaurant.slug}`}>
+              <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                View Full Menu ({restaurant.menuCount}) <ExternalLink className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
+          </div>
+        </Card>
+      ))}
+    </div>
+  )
 }
 
 export default function HomePage() {
   const { data: session } = useSession()
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [currentView, setCurrentView] = useState<'list' | 'map'>('list')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearchTerm] = useDebounce(searchTerm, 300)
 
-  useEffect(() => {
-    loadRestaurants()
-  }, [])
-
-  const loadRestaurants = async () => {
+  const loadRestaurants = useCallback(async () => {
+    setIsLoading(true)
     try {
-      const response = await fetch('/api/restaurants/public')
+      const endpoint = debouncedSearchTerm 
+        ? `/api/search?q=${encodeURIComponent(debouncedSearchTerm)}`
+        : '/api/restaurants/public'
+        
+      const response = await fetch(endpoint)
       if (response.ok) {
         const data = await response.json()
         setRestaurants(data.restaurants)
@@ -44,22 +90,22 @@ export default function HomePage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [debouncedSearchTerm])
 
-  const getPreviewCategories = (restaurant: Restaurant) => {
-    if (!restaurant.latestMenu?.extractedData?.categories) return []
-    return restaurant.latestMenu.extractedData.categories.slice(0, 3)
-  }
+  useEffect(() => {
+    loadRestaurants()
+  }, [loadRestaurants])
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Navigation */}
-      <nav className="bg-white/95 backdrop-blur-sm border-b">
+      <nav className="bg-white/95 backdrop-blur-sm border-b sticky top-0 z-20">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
+          <Link href="/" className="flex items-center space-x-2">
             <Menu className="h-8 w-8 text-blue-600" />
             <span className="text-2xl font-bold text-gray-900">MenuCard</span>
-          </div>
+          </Link>
           
           <div className="flex items-center space-x-4">
             <Link href="/how-it-works">
@@ -86,76 +132,33 @@ export default function HomePage() {
             <span className="text-blue-600"> Restaurant Menus</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8">
-            Browse digital menus from restaurants around you. Restaurant owners can easily 
-            create beautiful digital menus by taking a photo - our AI does the rest!
+            Browse digital menus from restaurants around you. Find your next favorite dish with a quick search.
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {session ? (
-              <Link href="/dashboard">
-                <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
-                  <Camera className="w-5 h-5 mr-2" />
-                  Add Your Restaurant
-                </Button>
-              </Link>
-            ) : (
-              <Button size="lg" onClick={() => signIn('google')} className="bg-blue-600 hover:bg-blue-700">
-                <Camera className="w-5 h-5 mr-2" />
-                List Your Restaurant
-              </Button>
-            )}
-            <Link href="/how-it-works">
-              <Button size="lg" variant="outline">
-                <Plus className="w-5 h-5 mr-2" />
-                Learn More
-              </Button>
-            </Link>
-          </div>
         </div>
 
         {/* Restaurant Directory */}
         <div className="mb-16">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-3xl font-bold text-gray-900">Featured Restaurants</h2>
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Featured Restaurants</h2>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Input 
+                type="text"
+                placeholder="Search for restaurants, cuisines, or dishes..."
+                className="w-full pl-10 pr-4 py-2 text-lg"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.from({length: 6}).map((_, i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardHeader>
-                    <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded w-full"></div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : restaurants.length === 0 ? (
             <div className="text-center py-16">
-              <Menu className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">No restaurants yet</h3>
-              <p className="text-gray-500 mb-6">Be the first restaurant to join MenuCard!</p>
-              {!session && (
-                <Button onClick={() => signIn('google')} className="bg-blue-600 hover:bg-blue-700">
-                  Add Your Restaurant
-                </Button>
-              )}
+              <Loader2 className="h-12 w-12 text-blue-600 mx-auto animate-spin" />
+              <p className="mt-4 text-gray-600">Searching for amazing food...</p>
             </div>
           ) : (
-            <RestaurantMap
-              restaurants={restaurants.map(r => ({
-                ...r,
-                distance: r.latitude && r.longitude ? undefined : undefined, // Will be calculated in map component
-              }))}
-              onViewChange={setCurrentView}
-              currentView={currentView}
-            />
+            <RestaurantList restaurants={restaurants} />
           )}
         </div>
 
